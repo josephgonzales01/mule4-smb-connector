@@ -1,0 +1,77 @@
+package com.wsl.smbConnector.internal;
+
+import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.wsl.smbConnector.internal.parameters.*;
+import com.wsl.smbConnector.internal.service.SMBOperationService;
+import com.wsl.smbConnector.internal.service.SMBOperationServiceImpl;
+import com.wsl.smbConnector.internal.util.Utility;
+
+import java.io.IOException;
+
+public class SmbConnectionTestMain {
+    public static final String DOMAIN = "";
+    public static final String BASE_DIRECTORY = "smb_shared";
+    public static final String HOST = "";
+    public static final String USERNAME = "";
+    public static final String PASS = "";
+
+    private SmbConnection connection;
+    private SMBOperationService service = new SMBOperationServiceImpl();
+
+    public SmbConnectionTestMain() throws IOException {
+        connection = new SmbConnection("", DOMAIN, BASE_DIRECTORY, HOST, USERNAME, PASS, SmbConnection.DEFAULT_TIMEOUT);
+    }
+
+    public void read() throws IOException {
+        byte[] read = service.read(connection, new FileReadParameters("dir0//dir1\\dir2/file1.txt"));
+        System.out.println("Data read: " + new String(read));
+    }
+
+    public void write() throws IOException {
+
+        service.write(connection, new FileWriteParameters("dir0/dir1/dir2/file1.txt", "<EOF>", FileWriteMode.APPEND, true));
+    }
+
+    public void list() throws IOException {
+        service.listFiles(connection, "sample_file2.txt").stream().filter(f -> !f.getFileName().startsWith(".")).map(FileIdBothDirectoryInformation::getFileName).forEach(System.out::println);
+    }
+
+    public void createDirectory() throws IOException {
+        service.createDirectory(connection, new CreateDirectoryParameters("dir0//dir1\\dir2/file1.txt"));
+
+    }
+
+    public void delete() throws IOException {
+        service.delete(connection, new FileDeleteParameters("dir0//dir1\\dir2/file1.txt", true));
+    }
+
+    public void move() throws IOException {
+        service.move(connection, new FileMoveParameters("dir0/dir1/dir2/file1.txt", "dir0/dir1/dir2/dir3/file1.txt", true, true, true));
+    }
+
+    public void rename() throws IOException {
+        service.rename(connection, new FileRenameParameters("newdir/new_file2.txt", "newdir2/new_file5.txt", false));
+    }
+
+    public static void main(String[] args) {
+
+        try {
+            SmbConnectionTestMain connectionTest = new SmbConnectionTestMain();
+            //connectionTest.list();
+            //connectionTest.read();
+            //connectionTest.createDirectory();
+            //connectionTest.write();
+            //connectionTest.delete();
+            //connectionTest.move();
+            connectionTest.rename();
+            //System.out.println("filename: "+ Utility.getFilename("file2.txt"));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+
+}
