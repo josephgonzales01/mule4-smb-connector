@@ -45,6 +45,10 @@ mvn clean install -Dmaven.test.skip=true
 ### Move and copy
 <img width="631" alt="smb_move_copy" src="https://user-images.githubusercontent.com/15100839/52002246-77190e00-24fc-11e9-9c8d-39def7c9d227.png">
 
+### Delete
+<img width="635" alt="smb_delete" src="https://user-images.githubusercontent.com/15100839/52002276-8e57fb80-24fc-11e9-9ecf-88eebb832bdd.png">
+
+
 ## Support
 
 Please log here https://github.com/josephgonzales01/mule4-smb-connector/issues for support.
