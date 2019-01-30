@@ -30,14 +30,9 @@ mvn clean install -Dmaven.test.skip=true
    <classifier>mule-plugin</classifier>
 </dependency>
 ```
-```
-
-
-
-
 ## Support
 
-Please [contact](mailto:main-contributor@whiteskylabs.com) for support.
+Please log here https://github.com/josephgonzales01/mule4-smb-connector/issues for support.
 
 
 
