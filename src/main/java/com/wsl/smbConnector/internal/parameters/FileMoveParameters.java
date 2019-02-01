@@ -82,4 +82,10 @@ public class FileMoveParameters {
     public void setCreateDirectory(boolean createDirectory) {
         this.createDirectory = createDirectory;
     }
+
+    public void setRemoveSource(boolean removeSource) {
+        this.removeSource = removeSource;
+    }
+
+
 }

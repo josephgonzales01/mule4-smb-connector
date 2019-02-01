@@ -33,7 +33,10 @@ public class SmbConnectionTestMain {
     }
 
     public void list() throws IOException {
-        service.listFiles(connection, "sample_file2.txt").stream().filter(f -> !f.getFileName().startsWith(".")).map(FileIdBothDirectoryInformation::getFileName).forEach(System.out::println);
+        List<Result<Map<String, Object>, SmbFileAttributes>> results = service.list(connection, new ListDirectoryParameters("", "", ListDirectoryMode.FILE_ONLY));
+        for (Result r : results) {
+            System.out.println("result: " + r);
+        }
     }
 
     public void createDirectory() throws IOException {
@@ -50,7 +53,7 @@ public class SmbConnectionTestMain {
     }
 
     public void rename() throws IOException {
-        service.rename(connection, new FileRenameParameters("newdir/new_file2.txt", "newdir2/new_file5.txt", false));
+        service.rename(connection, new FileRenameParameters("dirx/new_file.txt", "dirx/new_file5.txt", true));
     }
 
     public static void main(String[] args) {

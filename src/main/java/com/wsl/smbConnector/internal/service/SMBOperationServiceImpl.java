@@ -1,16 +1,21 @@
 package com.wsl.smbConnector.internal.service;
 
 import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.protocol.commons.EnumWithValue;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import com.wsl.smbConnector.internal.SmbConnection;
+import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
+import com.wsl.smbConnector.internal.api.payload.TimeInfo;
 import com.wsl.smbConnector.internal.parameters.*;
 import com.wsl.smbConnector.internal.util.Utility;
 import org.apache.commons.io.IOUtils;
+import org.mule.runtime.extension.api.runtime.operation.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,15 +121,15 @@ public class SMBOperationServiceImpl implements SMBOperationService {
         String sourcePath = Utility.fixPath(parameters.getSourcePath());
 
         //always use the source parent directories for the new name
-        StringBuffer newName = new StringBuffer(Utility.listFileParentDirs(sourcePath).stream().collect(Collectors.joining("/")));
+        StringBuilder newName = new StringBuilder(Utility.listFileParentDirs(sourcePath).stream().collect(Collectors.joining("/")));
         newName.append('\\');
         newName.append(Utility.getFilename(parameters.getNewName()));
 
         LOGGER.info("Renaming file smb://{}/{}/{} to {}", connection.getHost(), connection.getBaseDirectory(), sourcePath, newName);
-        SMB2CreateDisposition createDisposition = parameters.isOverwrite() ? SMB2CreateDisposition.FILE_OPEN : SMB2CreateDisposition.FILE_OPEN;
+        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OPEN;
 
         File renameFile = diskShare.openFile(sourcePath, EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-        renameFile.rename(newName.toString(),parameters.isOverwrite());
+        renameFile.rename(newName.toString(), parameters.isOverwrite());
 
     }
 
@@ -144,13 +149,36 @@ public class SMBOperationServiceImpl implements SMBOperationService {
 
 
     @Override
-    public List<FileIdBothDirectoryInformation> listFiles(SmbConnection connection, String path) throws IOException {
+    public List<Result<Map<String, Object>, SmbFileAttributes>> list(SmbConnection connection, ListDirectoryParameters parameters) throws IOException {
         DiskShare diskShare = connection.getDiskShare();
-        if (diskShare.getFileInformation(path).getStandardInformation().isDirectory()) {
-            return connection.getDiskShare().list(path);
+        List<FileIdBothDirectoryInformation> contents;
+
+        //check if the given target path is a file or directory
+        if (diskShare.getFileInformation(parameters.getTargetPath()).getStandardInformation().isDirectory()) {
+            contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(parameters.getTargetPath()) : diskShare.list(parameters.getTargetPath(), parameters.getSearchPattern());
+        } else {
+            String path = Utility.listFileParentDirs(parameters.getTargetPath()).stream().collect(Collectors.joining("/"));
+            contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(path) : diskShare.list(path, parameters.getSearchPattern());
         }
-        path = Utility.listFileParentDirs(path).stream().collect(Collectors.joining("/"));
-        return connection.getDiskShare().list(path);
+
+        return contents.stream().filter(d -> {
+            if (".".equals(d.getFileName()) || "..".equals(d.getFileName())) return false;
+            if (parameters.getListMode() == ListDirectoryMode.ALL)
+                return true;
+            else if (parameters.getListMode() == ListDirectoryMode.FILE_ONLY) {
+                return !EnumWithValue.EnumUtils.isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+            } else {
+                return EnumWithValue.EnumUtils.isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+            }
+        }).map(d -> {
+            SmbFileAttributes attr = new SmbFileAttributes(
+                    d.getFileName(),
+                    d.getEndOfFile(),
+                    new TimeInfo(d.getCreationTime().toString(), d.getLastAccessTime().toString(), d.getLastWriteTime().toString(), d.getChangeTime().toString()));
+
+            return Result.<Map<String, Object>, SmbFileAttributes>builder().output(attr.getHashMap()).attributes(attr).build();
+
+        }).collect(Collectors.toList());
     }
 
     @Override
