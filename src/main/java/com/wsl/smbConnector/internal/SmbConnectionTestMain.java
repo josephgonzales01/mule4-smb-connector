@@ -1,17 +1,19 @@
 package com.wsl.smbConnector.internal;
 
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
 import com.wsl.smbConnector.internal.parameters.*;
 import com.wsl.smbConnector.internal.service.SMBOperationService;
 import com.wsl.smbConnector.internal.service.SMBOperationServiceImpl;
-import com.wsl.smbConnector.internal.util.Utility;
+import org.mule.runtime.extension.api.runtime.operation.Result;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 public class SmbConnectionTestMain {
     public static final String DOMAIN = "";
     public static final String BASE_DIRECTORY = "smb_shared";
-    public static final String HOST = "";
+    public static final String HOST = "5-15-14-135.residential.rdsnet.ro";
     public static final String USERNAME = "";
     public static final String PASS = "";
 
@@ -66,7 +68,7 @@ public class SmbConnectionTestMain {
             //connectionTest.write();
             //connectionTest.delete();
             //connectionTest.move();
-            connectionTest.rename();
+           connectionTest.rename();
             //System.out.println("filename: "+ Utility.getFilename("file2.txt"));
 
         } catch (IOException e) {
