@@ -1,17 +1,19 @@
 package com.wsl.smbConnector.internal;
 
-import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
+import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
 import com.wsl.smbConnector.internal.parameters.*;
 import com.wsl.smbConnector.internal.service.SMBOperationService;
 import com.wsl.smbConnector.internal.service.SMBOperationServiceImpl;
-import com.wsl.smbConnector.internal.util.Utility;
+import org.mule.runtime.extension.api.runtime.operation.Result;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 public class SmbConnectionTestMain {
     public static final String DOMAIN = "";
     public static final String BASE_DIRECTORY = "smb_shared";
-    public static final String HOST = "";
+    public static final String HOST = "5-15-14-135.residential.rdsnet.ro";
     public static final String USERNAME = "";
     public static final String PASS = "";
 
@@ -33,7 +35,10 @@ public class SmbConnectionTestMain {
     }
 
     public void list() throws IOException {
-        service.listFiles(connection, "sample_file2.txt").stream().filter(f -> !f.getFileName().startsWith(".")).map(FileIdBothDirectoryInformation::getFileName).forEach(System.out::println);
+        List<Result<Map<String, Object>, SmbFileAttributes>> results = service.list(connection, new ListDirectoryParameters("", "", ListDirectoryMode.FILE_ONLY));
+        for (Result r : results) {
+            System.out.println("result: " + r);
+        }
     }
 
     public void createDirectory() throws IOException {
@@ -50,7 +55,7 @@ public class SmbConnectionTestMain {
     }
 
     public void rename() throws IOException {
-        service.rename(connection, new FileRenameParameters("newdir/new_file2.txt", "newdir2/new_file5.txt", false));
+        service.rename(connection, new FileRenameParameters("dirx/new_file.txt", "dirx/new_file5.txt", true));
     }
 
     public static void main(String[] args) {
@@ -63,7 +68,7 @@ public class SmbConnectionTestMain {
             //connectionTest.write();
             //connectionTest.delete();
             //connectionTest.move();
-            connectionTest.rename();
+           connectionTest.rename();
             //System.out.println("filename: "+ Utility.getFilename("file2.txt"));
 
         } catch (IOException e) {

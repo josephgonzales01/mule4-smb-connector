@@ -54,4 +54,7 @@ public class FileRenameParameters {
         this.overwrite = overwrite;
     }
 
+    public void setNewName(String newName) {
+        this.newName = newName;
+    }
 }
