@@ -26,7 +26,7 @@ mvn clean install -Dmaven.test.skip=true
 <dependency>
    <groupId>com.wsl.connectors</groupId>
    <artifactId>smbConnector</artifactId>
-   <version>0.9.0</version>
+   <version>0.9.2</version>
    <classifier>mule-plugin</classifier>
 </dependency>
 ```
