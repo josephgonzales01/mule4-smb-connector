@@ -12,199 +12,262 @@ import com.hierynomus.smbj.share.File;
 import com.wsl.smbConnector.internal.SmbConnection;
 import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
 import com.wsl.smbConnector.internal.api.payload.TimeInfo;
-import com.wsl.smbConnector.internal.parameters.*;
+import com.wsl.smbConnector.internal.parameters.CreateDirectoryParameters;
+import com.wsl.smbConnector.internal.parameters.FileDeleteParameters;
+import com.wsl.smbConnector.internal.parameters.FileMoveParameters;
+import com.wsl.smbConnector.internal.parameters.FileReadParameters;
+import com.wsl.smbConnector.internal.parameters.FileRenameParameters;
+import com.wsl.smbConnector.internal.parameters.FileWriteMode;
+import com.wsl.smbConnector.internal.parameters.FileWriteParameters;
+import com.wsl.smbConnector.internal.parameters.ListDirectoryMode;
+import com.wsl.smbConnector.internal.parameters.ListDirectoryParameters;
+import com.wsl.smbConnector.internal.parameters.SMBFileParameters;
 import com.wsl.smbConnector.internal.util.Utility;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.mule.runtime.extension.api.runtime.operation.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+public class SMBOperationServiceImpl  {
 
-public class SMBOperationServiceImpl implements SMBOperationService {
+  private final Logger LOGGER = LoggerFactory.getLogger(SMBOperationServiceImpl.class);
 
-    private final Logger LOGGER = LoggerFactory.getLogger(SMBOperationServiceImpl.class);
 
-    @Override
-    public byte[] read(SmbConnection connection, FileReadParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        String targetPath = Utility.fixPath(parameters.getTargetPath());
-        try (File file = diskShare.openFile(targetPath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
-            LOGGER.info("Reading file at smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(), targetPath);
-            return IOUtils.toByteArray(file.getInputStream());
-        } catch (IOException e) {
-            throw e;
-        }
+
+  public void perform(SmbConnection connection, SMBFileParameters parameters,
+      List<Result> result) throws IOException {
+
+  }
+
+
+  public byte[] read(SmbConnection connection, FileReadParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    String targetPath = Utility.fixPath(parameters.getPath());
+    try (File file = diskShare
+        .openFile(targetPath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OPEN, null)) {
+      LOGGER.info("Reading file at smb://{}/{}/{}", connection.getHost(),
+          connection.getBaseDirectory(), targetPath);
+
+      return IOUtils.toByteArray(file.getInputStream());
+    } catch (IOException e) {
+      throw e;
+    }
+  }
+
+
+
+  public void write(SmbConnection connection, FileWriteParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    String targetPath = Utility.fixPath(parameters.getPath());
+
+    LOGGER.info("Writing file attributes isCreateDirectory:{} | writeMode:{}",
+        parameters.isCreateDirectory(), parameters.getWriteMode().name());
+
+    //create non existing directory
+    if (parameters.isCreateDirectory() && !diskShare.folderExists(targetPath)) {
+      createDirectory(connection, new CreateDirectoryParameters(targetPath));
     }
 
-    @Override
-    public void write(SmbConnection connection, FileWriteParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        String targetPath = Utility.fixPath(parameters.getTargetPath());
+    boolean fileExist = diskShare.fileExists(targetPath);
 
-        LOGGER.info("Writing file attributes isCreateDirectory:{} | writeMode:{}", parameters.isCreateDirectory(), parameters.getWriteMode().name());
+    Set accessMask = new HashSet<>(
+        Arrays.asList(AccessMask.MAXIMUM_ALLOWED, AccessMask.GENERIC_WRITE));
+    SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_CREATE;
+    Set createOptions = new HashSet<>(Arrays.asList(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+    boolean useWriteOffset = false;
 
-        //create non existing directory
-        if (parameters.isCreateDirectory() && !diskShare.folderExists(targetPath)) {
-            createDirectory(connection, new CreateDirectoryParameters(targetPath));
-        }
+    if (fileExist && parameters.getWriteMode() == FileWriteMode.OVERWRITE) {
+      createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
+    } else if (fileExist && parameters.getWriteMode() == FileWriteMode.APPEND) {
+      accessMask.add(AccessMask.FILE_APPEND_DATA);
+      createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
+      useWriteOffset = true;
+    } else if (fileExist && parameters.getWriteMode() == FileWriteMode.PREPEND) {
+      createDisposition = SMB2CreateDisposition.FILE_OPEN_IF;
+      createOptions.add(SMB2CreateOptions.FILE_RANDOM_ACCESS);
+    } else {
+      accessMask.add(AccessMask.FILE_ADD_FILE);
+    }
+    //String existinData = fileExist && parameters.getWriteMode() == FileWriteMode.PREPEND ? new String(read(connection, new FileReadParameters(targetPath))) : "";
+    File file = diskShare
+        .openFile(targetPath, accessMask, null, SMB2ShareAccess.ALL, createDisposition,
+            createOptions);
 
-        boolean fileExist = diskShare.fileExists(targetPath);
+    StringBuilder newData = new StringBuilder(parameters.getContent());
+    //newData.append(existinData);
 
-        Set accessMask = new HashSet<>(Arrays.asList(AccessMask.MAXIMUM_ALLOWED, AccessMask.GENERIC_WRITE));
-        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_CREATE;
-        Set createOptions = new HashSet<>(Arrays.asList(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-        boolean useWriteOffset = false;
+    LOGGER
+        .info("Writing file at smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
+            targetPath);
 
-        if (fileExist && parameters.getWriteMode() == FileWriteMode.OVERWRITE) {
-            createDisposition = SMB2CreateDisposition.FILE_SUPERSEDE;
-        } else if (fileExist && parameters.getWriteMode() == FileWriteMode.APPEND) {
-            accessMask.add(AccessMask.FILE_APPEND_DATA);
-            createDisposition = SMB2CreateDisposition.FILE_OPEN_IF;
-            useWriteOffset = true;
-        } else if (fileExist && parameters.getWriteMode() == FileWriteMode.PREPEND) {
-            createDisposition = SMB2CreateDisposition.FILE_SUPERSEDE;
-        } else {
-            accessMask.add(AccessMask.FILE_ADD_FILE);
-        }
-        String existinData = fileExist && parameters.getWriteMode() == FileWriteMode.PREPEND ? new String(read(connection, new FileReadParameters(targetPath))) : "";
-        File file = diskShare.openFile(targetPath, accessMask, null, SMB2ShareAccess.ALL, createDisposition, createOptions);
+    if (useWriteOffset) {
+      long offset = file.getFileInformation().getStandardInformation().getEndOfFile();
+      file.write(newData.toString().getBytes(), offset);
 
-        StringBuilder newData = new StringBuilder(parameters.getContent());
-        newData.append(existinData);
+    } else {
+      file.write(newData.toString().getBytes(), 0);
+    }
+    file.close();
 
-        LOGGER.info("Writing file at smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(), targetPath);
+  }
 
-        if (useWriteOffset) {
-            long offset = file.getFileInformation().getStandardInformation().getEndOfFile();
-            file.write(newData.toString().getBytes(), offset);
-        } else {
-            file.write(newData.toString().getBytes(), 0);
-        }
-        file.close();
 
+  public void move(SmbConnection connection, FileMoveParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    String sourcePath = Utility.fixPath(parameters.getPath());
+    String targetPath = Utility.fixPath(parameters.getTargetPath());
+
+    Set accessMask = new HashSet<>(
+        Arrays.asList(AccessMask.GENERIC_WRITE, AccessMask.FILE_ADD_FILE));
+    SMB2CreateDisposition createDisposition =
+        parameters.isOverwrite() ? SMB2CreateDisposition.FILE_SUPERSEDE
+            : SMB2CreateDisposition.FILE_CREATE;
+
+    LOGGER.info("Moving file attributes isOverwrite:{} | isCreateDirectory:{} | isRemoveSource:{}",
+        parameters.isOverwrite(), parameters.isCreateDirectory(), parameters.isRemoveSource());
+
+    //create non existing directory
+    if (parameters.isCreateDirectory() && !diskShare.folderExists(targetPath)) {
+      createDirectory(connection, new CreateDirectoryParameters(targetPath));
     }
 
-    @Override
-    public void move(SmbConnection connection, FileMoveParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        String sourcePath = Utility.fixPath(parameters.getSourcePath());
-        String targetPath = Utility.fixPath(parameters.getTargetPath());
+    File targetFile = diskShare
+        .openFile(targetPath, accessMask, null, SMB2ShareAccess.ALL, createDisposition,
+            EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
 
-        Set accessMask = new HashSet<>(Arrays.asList(AccessMask.GENERIC_WRITE, AccessMask.FILE_ADD_FILE));
-        SMB2CreateDisposition createDisposition = parameters.isOverwrite() ? SMB2CreateDisposition.FILE_SUPERSEDE : SMB2CreateDisposition.FILE_CREATE;
+    byte[] datadToCopy = read(connection, new FileReadParameters(sourcePath));
 
-        LOGGER.info("Moving file attributes isOverwrite:{} | isCreateDirectory:{} | isRemoveSource:{}", parameters.isOverwrite(), parameters.isCreateDirectory(), parameters.isRemoveSource());
+    LOGGER.info("Transferring file to smb://{}/{}/{}", connection.getHost(),
+        connection.getBaseDirectory(), targetPath);
+    targetFile.write(datadToCopy, 0);
+    if (parameters.isRemoveSource()) {
+      LOGGER
+          .info("Removing file smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
+              sourcePath);
+      diskShare.rm(sourcePath);
+    }
+  }
 
-        //create non existing directory
-        if (parameters.isCreateDirectory() && !diskShare.folderExists(targetPath)) {
-            createDirectory(connection, new CreateDirectoryParameters(targetPath));
-        }
 
-        File targetFile = diskShare.openFile(targetPath, accessMask, null, SMB2ShareAccess.ALL, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+  public void rename(SmbConnection connection, FileRenameParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    String sourcePath = Utility.fixPath(parameters.getPath());
 
-        byte[] datadToCopy = read(connection, new FileReadParameters(sourcePath));
+    //always use the source parent directories for the new name
+    StringBuilder newName = new StringBuilder(
+        Utility.listFileParentDirs(sourcePath).stream().collect(Collectors.joining("/")));
+    newName.append('\\');
+    newName.append(Utility.getFilename(parameters.getNewName()));
 
-        LOGGER.info("Transferring file to smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(), targetPath);
-        targetFile.write(datadToCopy, 0);
-        if (parameters.isRemoveSource()) {
-            LOGGER.info("Removing file smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(), sourcePath);
-            diskShare.rm(sourcePath);
-        }
+    LOGGER.info("Renaming file smb://{}/{}/{} to {}", connection.getHost(),
+        connection.getBaseDirectory(), sourcePath, newName);
+    SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OPEN;
+
+    File renameFile = diskShare
+        .openFile(sourcePath, EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE), null,
+            SMB2ShareAccess.ALL, createDisposition,
+            EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
+    renameFile.rename(newName.toString(), parameters.isOverwrite());
+
+  }
+
+
+  public void delete(SmbConnection connection, FileDeleteParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    String targetPath = Utility.fixPath(parameters.getPath());
+    if (diskShare.getFileInformation(targetPath).getStandardInformation().isDirectory()) {
+      diskShare.rmdir(targetPath, parameters.isRecursive());
+    } else {
+      diskShare.rm(targetPath);
     }
 
-    @Override
-    public void rename(SmbConnection connection, FileRenameParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        String sourcePath = Utility.fixPath(parameters.getSourcePath());
+    LOGGER.info("Deleting smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
+        targetPath);
 
-        //always use the source parent directories for the new name
-        StringBuilder newName = new StringBuilder(Utility.listFileParentDirs(sourcePath).stream().collect(Collectors.joining("/")));
-        newName.append('\\');
-        newName.append(Utility.getFilename(parameters.getNewName()));
+  }
 
-        LOGGER.info("Renaming file smb://{}/{}/{} to {}", connection.getHost(), connection.getBaseDirectory(), sourcePath, newName);
-        SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OPEN;
 
-        File renameFile = diskShare.openFile(sourcePath, EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_WRITE), null, SMB2ShareAccess.ALL, createDisposition, EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
-        renameFile.rename(newName.toString(), parameters.isOverwrite());
 
+  public List<Result<Map<String, Object>, SmbFileAttributes>> list(SmbConnection connection,
+      ListDirectoryParameters parameters) throws IOException {
+    DiskShare diskShare = connection.getDiskShare();
+    List<FileIdBothDirectoryInformation> contents;
+
+    //check if the given target path is a file or directory
+    if (diskShare.getFileInformation(parameters.getPath()).getStandardInformation()
+        .isDirectory()) {
+      contents =
+          parameters.getSearchPattern().isEmpty() ? diskShare.list(parameters.getPath())
+              : diskShare.list(parameters.getPath(), parameters.getSearchPattern());
+    } else {
+      String path = Utility.listFileParentDirs(parameters.getPath()).stream()
+          .collect(Collectors.joining("/"));
+      contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(path)
+          : diskShare.list(path, parameters.getSearchPattern());
     }
 
-    @Override
-    public void delete(SmbConnection connection, FileDeleteParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        String targetPath = Utility.fixPath(parameters.getTargetPath());
-        if (diskShare.getFileInformation(targetPath).getStandardInformation().isDirectory()) {
-            diskShare.rmdir(targetPath, parameters.isRecursive());
-        } else {
-            diskShare.rm(targetPath);
-        }
+    return contents.stream().filter(d -> {
+      if (".".equals(d.getFileName()) || "..".equals(d.getFileName())) {
+        return false;
+      }
+      if (parameters.getListMode() == ListDirectoryMode.ALL) {
+        return true;
+      } else if (parameters.getListMode() == ListDirectoryMode.FILE_ONLY) {
+        return !EnumWithValue.EnumUtils
+            .isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+      } else {
+        return EnumWithValue.EnumUtils
+            .isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+      }
+    }).map(d -> {
+      SmbFileAttributes attr = new SmbFileAttributes(
+          d.getFileName(),
+          d.getEndOfFile(),
+          new TimeInfo(d.getCreationTime().toString(), d.getLastAccessTime().toString(),
+              d.getLastWriteTime().toString(), d.getChangeTime().toString()));
 
-        LOGGER.info("Deleting smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(), targetPath);
+      return Result.<Map<String, Object>, SmbFileAttributes>builder().output(attr.getHashMap())
+          .attributes(attr).build();
 
+    }).collect(Collectors.toList());
+  }
+
+
+  public void createDirectory(SmbConnection connection, CreateDirectoryParameters parameters)
+      throws IOException {
+    //extract directories
+    DiskShare diskShare = connection.getDiskShare();
+    String targetPath = Utility.fixPath(parameters.getPath());
+    List<String> parentDirs = Utility.listFileParentDirs(targetPath);
+
+    if (parentDirs.isEmpty()) {
+      //do nothing if no parent directory
+      return;
     }
+    LOGGER.info("Creating directory {} at smb://{}/{}", targetPath, connection.getHost(),
+        connection.getBaseDirectory());
 
-
-    @Override
-    public List<Result<Map<String, Object>, SmbFileAttributes>> list(SmbConnection connection, ListDirectoryParameters parameters) throws IOException {
-        DiskShare diskShare = connection.getDiskShare();
-        List<FileIdBothDirectoryInformation> contents;
-
-        //check if the given target path is a file or directory
-        if (diskShare.getFileInformation(parameters.getTargetPath()).getStandardInformation().isDirectory()) {
-            contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(parameters.getTargetPath()) : diskShare.list(parameters.getTargetPath(), parameters.getSearchPattern());
-        } else {
-            String path = Utility.listFileParentDirs(parameters.getTargetPath()).stream().collect(Collectors.joining("/"));
-            contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(path) : diskShare.list(path, parameters.getSearchPattern());
-        }
-
-        return contents.stream().filter(d -> {
-            if (".".equals(d.getFileName()) || "..".equals(d.getFileName())) return false;
-            if (parameters.getListMode() == ListDirectoryMode.ALL)
-                return true;
-            else if (parameters.getListMode() == ListDirectoryMode.FILE_ONLY) {
-                return !EnumWithValue.EnumUtils.isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
-            } else {
-                return EnumWithValue.EnumUtils.isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
-            }
-        }).map(d -> {
-            SmbFileAttributes attr = new SmbFileAttributes(
-                    d.getFileName(),
-                    d.getEndOfFile(),
-                    new TimeInfo(d.getCreationTime().toString(), d.getLastAccessTime().toString(), d.getLastWriteTime().toString(), d.getChangeTime().toString()));
-
-            return Result.<Map<String, Object>, SmbFileAttributes>builder().output(attr.getHashMap()).attributes(attr).build();
-
-        }).collect(Collectors.toList());
+    //****  create all directories one at a time
+    StringBuilder currentDir = new StringBuilder(parentDirs.get(0));
+    for (int i = 1; i <= parentDirs.size(); i++) {
+      if (!diskShare.folderExists(currentDir.toString())) {
+        diskShare.mkdir(currentDir.toString());
+      }
+      if (i < parentDirs.size()) {
+        currentDir.append("/");
+        currentDir.append(parentDirs.get(i));
+      }
     }
-
-    @Override
-    public void createDirectory(SmbConnection connection, CreateDirectoryParameters parameters) throws IOException {
-        //extract directories
-        DiskShare diskShare = connection.getDiskShare();
-        String targetPath = Utility.fixPath(parameters.getTargetPath());
-        List<String> parentDirs = Utility.listFileParentDirs(targetPath);
-
-        if (parentDirs.isEmpty()) {
-            //do nothing if no parent directory
-            return;
-        }
-        LOGGER.info("Creating directory {} at smb://{}/{}", targetPath, connection.getHost(), connection.getBaseDirectory());
-
-        //****  create all directories one at a time
-        StringBuilder currentDir = new StringBuilder(parentDirs.get(0));
-        for (int i = 1; i <= parentDirs.size(); i++) {
-            if (!diskShare.folderExists(currentDir.toString())) {
-                diskShare.mkdir(currentDir.toString());
-            }
-            if (i < parentDirs.size()) {
-                currentDir.append("/");
-                currentDir.append(parentDirs.get(i));
-            }
-        }
-        LOGGER.info("Directory Created: {}", currentDir);
-    }
+    LOGGER.info("Directory Created: {}", currentDir);
+  }
 }

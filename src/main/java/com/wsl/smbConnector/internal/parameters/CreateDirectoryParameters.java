@@ -4,28 +4,29 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class CreateDirectoryParameters {
+public class CreateDirectoryParameters implements SMBFileParameters {
 
-    @Parameter
-    @DisplayName("Directory Path")
-    @Summary("Path to directory and subdirectory")
-    private String targetPath;
+  @Parameter
+  @DisplayName("Directory Path")
+  @Summary("Path to directory and subdirectory")
+  private String path;
 
 
-    public CreateDirectoryParameters() {
-        this("");
-    }
+  public CreateDirectoryParameters() {
+    this("");
+  }
 
-    public CreateDirectoryParameters(String targetPath) {
-        this.targetPath = targetPath;
-    }
+  public CreateDirectoryParameters(String targetPath) {
+    this.path = targetPath;
+  }
 
-    public String getTargetPath() {
-        return targetPath;
-    }
+  @Override
+  public String getPath() {
+    return path;
+  }
 
-    public void setTargetPath(String targetPath) {
-        this.targetPath = targetPath;
-    }
-
+  @Override
+  public void setPath(String path) {
+    this.path = path;
+  }
 }

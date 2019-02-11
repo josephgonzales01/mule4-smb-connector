@@ -5,12 +5,12 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class FileRenameParameters {
+public class FileRenameParameters implements SMBFileParameters{
 
     @Parameter
     @Summary("Path to the file to be renamed")
     @DisplayName("Source Path")
-    private String sourcePath;
+    private String path;
 
     @Parameter
     @Summary("New file name, parent directories will be disregarded")
@@ -29,13 +29,14 @@ public class FileRenameParameters {
     }
 
     public FileRenameParameters(String sourcePath, String newName, boolean overwrite) {
-        this.sourcePath = sourcePath;
+        this.path = sourcePath;
         this.newName = newName;
         this.overwrite = overwrite;
     }
 
-    public String getSourcePath() {
-        return sourcePath;
+    @Override
+    public String getPath() {
+        return path;
     }
 
     public String getNewName() {
@@ -46,15 +47,16 @@ public class FileRenameParameters {
         return overwrite;
     }
 
-    public void setSourcePath(String sourcePath) {
-        this.sourcePath = sourcePath;
-    }
-
     public void setOverwrite(boolean overwrite) {
         this.overwrite = overwrite;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public void setNewName(String newName) {
         this.newName = newName;
     }
+
 }

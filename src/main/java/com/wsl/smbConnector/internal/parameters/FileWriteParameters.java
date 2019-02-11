@@ -5,12 +5,12 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class FileWriteParameters {
+public class FileWriteParameters implements SMBFileParameters{
 
     @Parameter
     @Summary("Complete Path of the file to be written")
     @DisplayName("Target path")
-    private String targetPath;
+    private String path;
 
     @Parameter
     @Summary("Content to be written")
@@ -34,14 +34,10 @@ public class FileWriteParameters {
     }
 
     public FileWriteParameters(String targetPath, String content, FileWriteMode writeMode, boolean createDirectory) {
-        this.targetPath = targetPath;
+        this.path = targetPath;
         this.content = content;
         this.writeMode = writeMode;
         this.createDirectory = createDirectory;
-    }
-
-    public String getTargetPath() {
-        return targetPath;
     }
 
     public FileWriteMode getWriteMode() {
@@ -50,10 +46,6 @@ public class FileWriteParameters {
 
     public boolean isCreateDirectory() {
         return createDirectory;
-    }
-
-    public void setTargetPath(String targetPath) {
-        this.targetPath = targetPath;
     }
 
     public String getContent() {
@@ -72,4 +64,14 @@ public class FileWriteParameters {
         this.createDirectory = createDirectory;
     }
 
+    @Override
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    public void setPath(String path) {
+        this.path = path;
+
+    }
 }
