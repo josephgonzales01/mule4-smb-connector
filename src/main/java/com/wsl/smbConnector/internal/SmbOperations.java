@@ -6,6 +6,7 @@ import com.wsl.smbConnector.api.SmbFileAttributes;
 import com.wsl.smbConnector.internal.parameters.FileDeleteParameters;
 import com.wsl.smbConnector.internal.parameters.FileMoveParameters;
 import com.wsl.smbConnector.internal.parameters.FileReadParameters;
+import com.wsl.smbConnector.internal.parameters.FileReadStreamParameters;
 import com.wsl.smbConnector.internal.parameters.FileRenameParameters;
 import com.wsl.smbConnector.internal.parameters.FileWriteParameters;
 import com.wsl.smbConnector.internal.parameters.ListDirectoryParameters;
@@ -56,10 +57,7 @@ public class SmbOperations {
     listService = new SMBListOperationService();
   }
 
-  /**
-   * Example of an operation that uses the configuration and a connection instance to perform some
-   * action.
-   */
+  @Summary("Extracts the content and metadata of a file at a given path")
   @MediaType(value = ANY, strict = false)
   public Result<byte[], SmbFileAttributes> read(@Config SmbConfiguration configuration,
       @Connection SmbConnection connection,
@@ -67,6 +65,18 @@ public class SmbOperations {
       throws IOException {
     LOGGER.info("Reader operation was called");
     return readService.perform(connection, readParameters);
+
+  }
+
+  @DisplayName("Chunk Read")
+  @Summary("Extracts the content by chunk size and metadata of a file at a given path")
+  @MediaType(value = ANY, strict = false)
+  public Result<byte[], SmbFileAttributes> readStream(@Config SmbConfiguration configuration,
+      @Connection SmbConnection connection,
+      @Expression(ExpressionSupport.NOT_SUPPORTED) @ParameterDsl(allowReferences = false) FileReadStreamParameters readStreamParameters)
+      throws IOException {
+    LOGGER.info("Chunk read operation was called");
+    return readService.performStream(connection, readStreamParameters);
 
   }
 

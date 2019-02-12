@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.wsl.connectors</groupId>
     <artifactId>smbConnector</artifactId>
-    <version>0.9.3</version>
+    <version>0.9.5</version>
     <packaging>mule-extension</packaging>
     <name>SMB Extension</name>
 

@@ -1,7 +1,6 @@
 package com.wsl.smbConnector.internal.service;
 
 import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.msfscc.fileinformation.FileAllInformation;
 import com.hierynomus.msfscc.fileinformation.FileBasicInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
@@ -10,6 +9,7 @@ import com.hierynomus.smbj.share.File;
 import com.wsl.smbConnector.api.SmbFileAttributes;
 import com.wsl.smbConnector.api.TimeInfo;
 import com.wsl.smbConnector.internal.SmbConnection;
+import com.wsl.smbConnector.internal.parameters.FileReadStreamParameters;
 import com.wsl.smbConnector.internal.parameters.SMBFileParameters;
 import com.wsl.smbConnector.internal.util.Utility;
 import java.io.IOException;
@@ -46,6 +46,33 @@ public class SMBReadOperationService extends SMBOperationService {
     LOGGER.info("Extracted File attributes: {}", attributes);
 
     byte[] data = IOUtils.toByteArray(file.getInputStream());
+    file.close();
+    return Result.<byte[], SmbFileAttributes>builder().output(data).attributes(attributes).build();
+
+  }
+
+  public Result<byte[], SmbFileAttributes> performStream(SmbConnection connection,
+      SMBFileParameters params)
+      throws IOException {
+    FileReadStreamParameters parameters = (FileReadStreamParameters) params;
+    DiskShare diskShare = connection.getDiskShare();
+    String targetPath = Utility.fixPath(parameters.getPath());
+    File file = diskShare
+        .openFile(targetPath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OPEN, null);
+    LOGGER.info("Reading file at smb://{}/{}/{}", connection.getHost(),
+        connection.getBaseDirectory(), targetPath);
+
+    FileBasicInformation fileInfo = file.getFileInformation().getBasicInformation();
+
+    SmbFileAttributes attributes = new SmbFileAttributes(Utility.getFilename(targetPath),
+        file.getFileInformation().getStandardInformation().getEndOfFile(),
+        new TimeInfo(fileInfo.getCreationTime().toString(), fileInfo.getLastAccessTime().toString(),
+            fileInfo.getLastWriteTime().toString(), fileInfo.getChangeTime().toString()));
+
+    LOGGER.info("Extracted File attributes: {}", attributes);
+    byte[] data = new byte[Math.toIntExact(parameters.getChunkSize())];
+    file.read(data, parameters.getOffset(), 0, data.length);
     file.close();
     return Result.<byte[], SmbFileAttributes>builder().output(data).attributes(attributes).build();
 
