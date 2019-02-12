@@ -1,4 +1,4 @@
-package com.wsl.smbConnector.internal.api.payload;
+package com.wsl.smbConnector.api;
 
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 

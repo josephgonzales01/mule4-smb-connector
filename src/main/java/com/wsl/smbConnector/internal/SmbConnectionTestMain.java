@@ -1,6 +1,6 @@
 package com.wsl.smbConnector.internal;
 
-import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
+import com.wsl.smbConnector.api.SmbFileAttributes;
 import com.wsl.smbConnector.internal.parameters.CreateDirectoryParameters;
 import com.wsl.smbConnector.internal.parameters.FileDeleteParameters;
 import com.wsl.smbConnector.internal.parameters.FileMoveParameters;

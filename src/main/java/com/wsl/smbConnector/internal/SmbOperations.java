@@ -2,7 +2,7 @@ package com.wsl.smbConnector.internal;
 
 import static org.mule.runtime.extension.api.annotation.param.MediaType.ANY;
 
-import com.wsl.smbConnector.internal.api.payload.SmbFileAttributes;
+import com.wsl.smbConnector.api.SmbFileAttributes;
 import com.wsl.smbConnector.internal.parameters.FileDeleteParameters;
 import com.wsl.smbConnector.internal.parameters.FileMoveParameters;
 import com.wsl.smbConnector.internal.parameters.FileReadParameters;
