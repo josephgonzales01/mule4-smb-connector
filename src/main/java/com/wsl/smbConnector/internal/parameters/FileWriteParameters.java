@@ -1,5 +1,8 @@
 package com.wsl.smbConnector.internal.parameters;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import org.mule.runtime.extension.api.annotation.param.Content;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
@@ -14,7 +17,8 @@ public class FileWriteParameters implements SMBFileParameters{
 
     @Parameter
     @Summary("Content to be written")
-    private String content;
+    @Content
+    private InputStream content;
 
     @Parameter
     @Optional(defaultValue = "OVERWRITE")
@@ -30,10 +34,10 @@ public class FileWriteParameters implements SMBFileParameters{
 
 
     public FileWriteParameters() {
-        this("", "", FileWriteMode.OVERWRITE, true);
+        this("", new ByteArrayInputStream(new byte[0]), FileWriteMode.OVERWRITE, true);
     }
 
-    public FileWriteParameters(String targetPath, String content, FileWriteMode writeMode, boolean createDirectory) {
+    public FileWriteParameters(String targetPath, InputStream content, FileWriteMode writeMode, boolean createDirectory) {
         this.path = targetPath;
         this.content = content;
         this.writeMode = writeMode;
@@ -48,11 +52,11 @@ public class FileWriteParameters implements SMBFileParameters{
         return createDirectory;
     }
 
-    public String getContent() {
+    public InputStream getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(InputStream content) {
         this.content = content;
     }
 

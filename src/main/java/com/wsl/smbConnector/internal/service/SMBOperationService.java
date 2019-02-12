@@ -26,7 +26,7 @@ public abstract class SMBOperationService {
       //do nothing if no parent directory
       return;
     }
-    LOGGER.info("Creating directory {} at smb://{}/{}", targetPath, connection.getHost(),
+    LOGGER.info("Creating directory for {} at smb://{}/{}", targetPath, connection.getHost(),
         connection.getBaseDirectory());
 
     //****  create all directories one at a time

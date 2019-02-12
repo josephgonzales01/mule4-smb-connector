@@ -16,8 +16,6 @@ import com.wsl.smbConnector.internal.service.SMBReadOperationService;
 import com.wsl.smbConnector.internal.service.SMBRenameOperationService;
 import com.wsl.smbConnector.internal.service.SMBWriteOperationService;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.mule.runtime.api.meta.ExpressionSupport;
@@ -114,9 +112,8 @@ public class SmbOperations {
       @Expression(ExpressionSupport.NOT_SUPPORTED) @ParameterDsl(allowReferences = false) ListDirectoryParameters listParameters)
       throws IOException {
     LOGGER.info("List operation was called");
-    List<Result<Map<String, Object>, SmbFileAttributes>> results = new ArrayList<>();
-    listService.perform(connection, listParameters, results);
-    return results;
+    return listService.perform(connection, listParameters);
+
   }
 
 

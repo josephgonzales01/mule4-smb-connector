@@ -24,40 +24,38 @@ public class SMBListOperationService extends SMBOperationService {
   private final Logger LOGGER = LoggerFactory.getLogger(SMBListOperationService.class);
 
 
-  public void perform(SmbConnection connection, SMBFileParameters param, List<Result<Map<String, Object>, SmbFileAttributes>> result)
+  public List<Result<Map<String, Object>, SmbFileAttributes>> perform(SmbConnection connection,
+      SMBFileParameters param)
       throws IOException {
 
     DiskShare diskShare = connection.getDiskShare();
-    List<FileIdBothDirectoryInformation> contents;
 
     ListDirectoryParameters parameters = (ListDirectoryParameters) param;
 
-    //check if the given target path is a file or directory
-    if (diskShare.getFileInformation(parameters.getPath()).getStandardInformation()
-        .isDirectory()) {
-      contents =
-          parameters.getSearchPattern().isEmpty() ? diskShare.list(parameters.getPath())
-              : diskShare.list(parameters.getPath(), parameters.getSearchPattern());
-    } else {
-      String path = Utility.listFileParentDirs(parameters.getPath()).stream()
-          .collect(Collectors.joining("/"));
-      contents = parameters.getSearchPattern().isEmpty() ? diskShare.list(path)
-          : diskShare.list(path, parameters.getSearchPattern());
-    }
+    String dirPath = diskShare.getFileInformation(parameters.getPath()).getStandardInformation()
+        .isDirectory() ? parameters.getPath()
+        : Utility.listFileParentDirs(parameters.getPath()).stream()
+            .collect(Collectors.joining("/"));
 
-    contents.stream().filter(d -> {
+    LOGGER
+        .info("Listing file at smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
+            dirPath);
+
+    List<FileIdBothDirectoryInformation> contents =
+        parameters.getSearchPattern().isEmpty() ? diskShare.list(dirPath)
+            : diskShare.list(dirPath, parameters.getSearchPattern());
+
+    return contents.stream().filter(d -> {
+      //exclude .. hardlink files
       if (".".equals(d.getFileName()) || "..".equals(d.getFileName())) {
         return false;
       }
-      if (parameters.getListMode() == ListDirectoryMode.ALL) {
-        return true;
-      } else if (parameters.getListMode() == ListDirectoryMode.FILE_ONLY) {
-        return !EnumWithValue.EnumUtils
-            .isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
-      } else {
-        return EnumWithValue.EnumUtils
-            .isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
-      }
+      boolean isDirectory = EnumWithValue.EnumUtils
+          .isSet(d.getFileAttributes(), FileAttributes.FILE_ATTRIBUTE_DIRECTORY);
+
+     return parameters.getListMode() == ListDirectoryMode.DIRECTORY_ONLY ? isDirectory
+          : parameters.getListMode() == ListDirectoryMode.FILE_ONLY ? !isDirectory : true;
+
     }).map(d -> {
       SmbFileAttributes attr = new SmbFileAttributes(
           d.getFileName(),
@@ -68,8 +66,7 @@ public class SMBListOperationService extends SMBOperationService {
       return Result.<Map<String, Object>, SmbFileAttributes>builder().output(attr.getHashMap())
           .attributes(attr).build();
 
-    }).forEach(result::add);
-
+    }).collect(Collectors.toList());
   }
 
 }

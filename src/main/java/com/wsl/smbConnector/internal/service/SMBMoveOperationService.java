@@ -70,7 +70,9 @@ public class SMBMoveOperationService extends SMBOperationService {
       LOGGER
           .info("Removing file smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
               sourcePath);
+
       diskShare.rm(sourcePath);
+
     }
   }
 
