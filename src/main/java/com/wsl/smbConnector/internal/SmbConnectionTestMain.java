@@ -57,7 +57,7 @@ public class SmbConnectionTestMain {
   }
 
   public void read() throws IOException {
-    Result<byte[], Void> result = readService
+    Result<byte[], SmbFileAttributes> result = readService
         .perform(connection, new FileReadParameters("new_file2.csv"));
     String read = new String((byte[]) result.getOutput());
     LOGGER.info("Data read stream: " + read);

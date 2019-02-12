@@ -6,6 +6,7 @@ import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import com.wsl.smbConnector.api.SmbFileAttributes;
 import com.wsl.smbConnector.internal.SmbConnection;
 import com.wsl.smbConnector.internal.parameters.CreateDirectoryParameters;
 import com.wsl.smbConnector.internal.parameters.FileMoveParameters;
@@ -60,7 +61,7 @@ public class SMBMoveOperationService extends SMBOperationService {
         .openFile(targetPath, accessMask, null, SMB2ShareAccess.ALL, createDisposition,
             EnumSet.of(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
 
-    Result<byte[], Void> result = readService
+    Result<byte[], SmbFileAttributes> result = readService
         .perform(connection, new FileReadParameters(sourcePath));
 
     LOGGER.info("Transferring file to smb://{}/{}/{}", connection.getHost(),

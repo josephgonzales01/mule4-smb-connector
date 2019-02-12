@@ -61,7 +61,7 @@ public class SmbOperations {
    * action.
    */
   @MediaType(value = ANY, strict = false)
-  public Result<byte[], Void> read(@Config SmbConfiguration configuration,
+  public Result<byte[], SmbFileAttributes> read(@Config SmbConfiguration configuration,
       @Connection SmbConnection connection,
       @Expression(ExpressionSupport.NOT_SUPPORTED) @ParameterDsl(allowReferences = false) FileReadParameters readParameters)
       throws IOException {
