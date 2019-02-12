@@ -5,12 +5,12 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class FileMoveParameters {
+public class FileMoveParameters implements SMBFileParameters {
 
     @Parameter
     @Summary("Path to the file to be move")
     @DisplayName("Source Path")
-    private String sourcePath;
+    private String path;
 
     @Parameter
     @Summary("Complete Target path name")
@@ -39,16 +39,12 @@ public class FileMoveParameters {
     }
 
     public FileMoveParameters(String sourcePath, String targetPath, boolean overwrite, boolean createDirectory, boolean removeSource) {
-        this.sourcePath = sourcePath;
+        this.path = sourcePath;
         this.targetPath = targetPath;
 
         this.overwrite = overwrite;
         this.createDirectory = createDirectory;
         this.removeSource = removeSource;
-    }
-
-    public String getSourcePath() {
-        return sourcePath;
     }
 
     public String getTargetPath() {
@@ -67,8 +63,8 @@ public class FileMoveParameters {
         return removeSource;
     }
 
-    public void setSourcePath(String sourcePath) {
-        this.sourcePath = sourcePath;
+    public void setPath(String sourcePath) {
+        this.path = sourcePath;
     }
 
     public void setTargetPath(String targetPath) {
@@ -85,6 +81,11 @@ public class FileMoveParameters {
 
     public void setRemoveSource(boolean removeSource) {
         this.removeSource = removeSource;
+    }
+
+    @Override
+    public String getPath() {
+        return path;
     }
 
 

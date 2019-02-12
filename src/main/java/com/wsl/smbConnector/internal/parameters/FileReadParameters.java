@@ -4,12 +4,12 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class FileReadParameters {
+public class FileReadParameters implements SMBFileParameters{
 
     @Parameter
     @DisplayName("Target Path")
     @Summary("Path of the file to be read")
-    private String targetPath;
+    private String path;
 
 
     public FileReadParameters() {
@@ -17,14 +17,15 @@ public class FileReadParameters {
     }
 
     public FileReadParameters(String targetPath) {
-        this.targetPath = targetPath;
+        this.path = targetPath;
     }
 
-    public String getTargetPath() {
-        return targetPath;
+    public void setPath(String targetPath) {
+        this.path = targetPath;
     }
 
-    public void setTargetPath(String targetPath) {
-        this.targetPath = targetPath;
+    @Override
+    public String getPath() {
+        return path;
     }
 }

@@ -1,20 +1,24 @@
 package com.wsl.smbConnector.internal.parameters;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import org.mule.runtime.extension.api.annotation.param.Content;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class FileWriteParameters {
+public class FileWriteParameters implements SMBFileParameters{
 
     @Parameter
     @Summary("Complete Path of the file to be written")
     @DisplayName("Target path")
-    private String targetPath;
+    private String path;
 
     @Parameter
     @Summary("Content to be written")
-    private String content;
+    @Content
+    private InputStream content;
 
     @Parameter
     @Optional(defaultValue = "OVERWRITE")
@@ -30,18 +34,14 @@ public class FileWriteParameters {
 
 
     public FileWriteParameters() {
-        this("", "", FileWriteMode.OVERWRITE, true);
+        this("", new ByteArrayInputStream(new byte[0]), FileWriteMode.OVERWRITE, true);
     }
 
-    public FileWriteParameters(String targetPath, String content, FileWriteMode writeMode, boolean createDirectory) {
-        this.targetPath = targetPath;
+    public FileWriteParameters(String targetPath, InputStream content, FileWriteMode writeMode, boolean createDirectory) {
+        this.path = targetPath;
         this.content = content;
         this.writeMode = writeMode;
         this.createDirectory = createDirectory;
-    }
-
-    public String getTargetPath() {
-        return targetPath;
     }
 
     public FileWriteMode getWriteMode() {
@@ -52,15 +52,11 @@ public class FileWriteParameters {
         return createDirectory;
     }
 
-    public void setTargetPath(String targetPath) {
-        this.targetPath = targetPath;
-    }
-
-    public String getContent() {
+    public InputStream getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(InputStream content) {
         this.content = content;
     }
 
@@ -72,4 +68,14 @@ public class FileWriteParameters {
         this.createDirectory = createDirectory;
     }
 
+    @Override
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    public void setPath(String path) {
+        this.path = path;
+
+    }
 }

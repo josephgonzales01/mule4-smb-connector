@@ -5,57 +5,59 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class ListDirectoryParameters {
+public class ListDirectoryParameters implements SMBFileParameters {
 
-    @Parameter
-    @DisplayName("Target Path")
-    @Summary("Path to the directory to list, by default it will list base directory")
-    @Optional(defaultValue = "")
-    private String targetPath;
+  @Parameter
+  @DisplayName("Target Path")
+  @Summary("Path to the directory to list, by default it will list base directory")
+  @Optional(defaultValue = "")
+  private String path;
 
-    @Parameter
-    @Summary("Directory content type to list")
-    @DisplayName("Content type")
-    private ListDirectoryMode listMode;
+  @Parameter
+  @Summary("Directory content type to list")
+  @DisplayName("Content type")
+  private ListDirectoryMode listMode;
 
-    @Parameter
-    @DisplayName("Search Pattern")
-    @Summary("filename pattern to search")
-    @Optional(defaultValue = "")
-    private String searchPattern;
+  @Parameter
+  @DisplayName("Search Pattern")
+  @Summary("filename pattern to search")
+  @Optional(defaultValue = "")
+  private String searchPattern;
 
 
-    public ListDirectoryParameters() {
-        this("", "", ListDirectoryMode.ALL);
-    }
+  public ListDirectoryParameters() {
+    this("", "", ListDirectoryMode.ALL);
+  }
 
-    public ListDirectoryParameters(String targetPath, String pattern, ListDirectoryMode listMode) {
-        this.targetPath = targetPath;
-        this.searchPattern = pattern;
-        this.listMode = listMode;
-    }
+  public ListDirectoryParameters(String targetPath, String pattern, ListDirectoryMode listMode) {
+    this.path = targetPath;
+    this.searchPattern = pattern;
+    this.listMode = listMode;
+  }
 
-    public String getTargetPath() {
-        return targetPath;
-    }
+  public ListDirectoryMode getListMode() {
+    return listMode;
+  }
 
-    public void setTargetPath(String targetPath) {
-        this.targetPath = targetPath;
-    }
+  public String getSearchPattern() {
+    return searchPattern.trim();
+  }
 
-    public ListDirectoryMode getListMode() {
-        return listMode;
-    }
+  public void setListMode(ListDirectoryMode listMode) {
+    this.listMode = listMode;
+  }
 
-    public String getSearchPattern() {
-        return searchPattern.trim();
-    }
+  public void setSearchPattern(String searchPattern) {
+    this.searchPattern = searchPattern;
+  }
 
-    public void setListMode(ListDirectoryMode listMode) {
-        this.listMode = listMode;
-    }
+  @Override
+  public String getPath() {
+    return path;
+  }
 
-    public void setSearchPattern(String searchPattern) {
-        this.searchPattern = searchPattern;
-    }
+  @Override
+  public void setPath(String path) {
+    this.path = path;
+  }
 }
