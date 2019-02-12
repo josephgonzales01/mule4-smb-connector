@@ -17,9 +17,10 @@ import com.wsl.smbConnector.internal.service.SMBReadOperationService;
 import com.wsl.smbConnector.internal.service.SMBRenameOperationService;
 import com.wsl.smbConnector.internal.service.SMBWriteOperationService;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.io.IOUtils;
 import org.mule.runtime.extension.api.runtime.operation.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,18 +67,17 @@ public class SmbConnectionTestMain {
   public void write() throws IOException {
 
     writeService.perform(connection,
-        new FileWriteParameters("dirx/new_file5.txt", "1234", FileWriteMode.PREPEND, true));
+        new FileWriteParameters("dirx/new_file5.txt", IOUtils.toInputStream("1234", Charset.defaultCharset()), FileWriteMode.PREPEND, true));
   }
 
   public void list() throws IOException {
-    List<Result<Map<String, Object>, SmbFileAttributes>> results = new ArrayList<>();
-    listService
-        .perform(connection, new ListDirectoryParameters("", "", ListDirectoryMode.FILE_ONLY),
-            results);
+    List<Result<Map<String, Object>, SmbFileAttributes>> results =
+        listService
+            .perform(connection, new ListDirectoryParameters("", "", ListDirectoryMode.FILE_ONLY));
     for (Result r : results) {
       LOGGER.info("result: " + r.getOutput());
     }
-    results.stream().map(Result::getOutput).forEach(o -> LOGGER.info(o.toString()));
+
   }
 
   public void createDirectory() throws IOException {

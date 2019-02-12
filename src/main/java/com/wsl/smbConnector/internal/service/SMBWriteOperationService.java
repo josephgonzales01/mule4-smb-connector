@@ -8,7 +8,6 @@ import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import com.wsl.smbConnector.internal.SmbConnection;
 import com.wsl.smbConnector.internal.parameters.CreateDirectoryParameters;
-import com.wsl.smbConnector.internal.parameters.FileReadParameters;
 import com.wsl.smbConnector.internal.parameters.FileWriteMode;
 import com.wsl.smbConnector.internal.parameters.FileWriteParameters;
 import com.wsl.smbConnector.internal.parameters.SMBFileParameters;
@@ -19,7 +18,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
-import org.mule.runtime.extension.api.runtime.operation.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,15 +68,17 @@ public class SMBWriteOperationService extends SMBOperationService {
 
     String targetPath = Utility.fixPath(parameters.getPath());
     Set accessMask = new HashSet<>(
-        Arrays.asList(AccessMask.MAXIMUM_ALLOWED, AccessMask.GENERIC_WRITE));
-    SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OVERWRITE_IF;
+        Arrays
+            .asList(AccessMask.MAXIMUM_ALLOWED, AccessMask.GENERIC_WRITE, AccessMask.GENERIC_READ));
+    SMB2CreateDisposition createDisposition = SMB2CreateDisposition.FILE_OPEN;
     Set createOptions = new HashSet<>(Arrays.asList(SMB2CreateOptions.FILE_NON_DIRECTORY_FILE));
 
     FileWriteMode mode = parameters.getWriteMode();
 
     if (mode == FileWriteMode.APPEND) {
       accessMask.add(AccessMask.FILE_APPEND_DATA);
-      createDisposition = SMB2CreateDisposition.FILE_OPEN_IF;
+    } else if (mode == FileWriteMode.OVERWRITE) {
+      createDisposition = SMB2CreateDisposition.FILE_SUPERSEDE;
     }
 
     File file = connection.getDiskShare()
@@ -87,22 +87,21 @@ public class SMBWriteOperationService extends SMBOperationService {
 
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     outputStream.write(IOUtils.toByteArray(parameters.getContent()));
-
-    LOGGER
-        .info("Writing file at smb://{}/{}/{}", connection.getHost(), connection.getBaseDirectory(),
-            targetPath);
+    long offset = 0L;
 
     if (mode == FileWriteMode.PREPEND) {
+      LOGGER.info("Reading existing data in {}", targetPath);
       //add existing data to end of file
-      Result<byte[], Void> result = new SMBReadOperationService()
-          .perform(connection, new FileReadParameters(targetPath));
-      outputStream.write(result.getOutput());
-      file.write(outputStream.toByteArray(), 0);
-    } else {
-      long offset = file.getFileInformation().getStandardInformation().getEndOfFile();
-      file.write(outputStream.toByteArray(), offset);
+      byte[] existingData = IOUtils.toByteArray(file.getInputStream());
+      outputStream.write(existingData);
+    } else if(mode == FileWriteMode.APPEND) {
+      offset = file.getFileInformation().getStandardInformation().getEndOfFile();
     }
-
+    LOGGER
+        .info("Writing file at smb://{}/{}/{}", connection.getHost(),
+            connection.getBaseDirectory(),
+            targetPath);
+    file.write(outputStream.toByteArray(), offset);
     file.close();
   }
 }
